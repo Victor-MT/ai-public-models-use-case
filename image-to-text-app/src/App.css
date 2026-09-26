@@ -1,0 +1,11 @@
+.url-form{
+  display: flex;
+  flex-direction: column;
+}
+
+.captioned-image{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 30px;
+}
