@@ -1,5 +1,19 @@
 import ImageCaptioner from "./ImageCaptioner";
 
-export default async function generateCaption(imgSrc){
+async function generateCaption(imgSrc){
     return ImageCaptioner.generateCaption(imgSrc);
 }
+
+async function translateCaption(captionENG){
+    return fetch("http://localhost:3000/translate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({"text": captionENG})
+    }).then(res => res.json())
+}
+
+
+export { generateCaption, translateCaption}
+ 

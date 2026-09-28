@@ -1,17 +1,26 @@
 import { useState } from 'react'
 import './App.css'
-import generateCaption from'./models/api';
+import {generateCaption, translateCaption} from './models/api';
 
 function App() {
   const [imgSrc, setImgSrc] = useState(null);
   const [caption, setCaption] = useState("<Caption>")
+  const [captionPTBR, setcaptionPTBR] = useState("<Legenda>")
 
+  function resetCaption(){
+    setCaption("<Caption>");
+    setcaptionPTBR("<Legenda>");
+  }
   async function addCaption() {
-    setCaption("Gerando legenda...")
-
+    resetCaption();
+    
+    setCaption("Gerando legenda...");
     const caption = await generateCaption(imgSrc);
-    console.log(caption)
     setCaption(caption[0]['generated_text']);
+
+    setcaptionPTBR("Traduzindo legenda...");
+    const captionPTBR = await translateCaption(caption[0]['generated_text']);
+    setcaptionPTBR(captionPTBR[0]['translation_text']);
 
   }
 
@@ -25,6 +34,7 @@ function App() {
       <div className='captioned-image'>
         <img src={imgSrc} height={200} style={{marginBottom: "10px"}}/>
         <span>{caption}</span>
+        <span>{captionPTBR}</span>
       </div>
     </>
   )
