@@ -1,116 +1,94 @@
-# Caption Generator — explorando modelos públicos da Hugging Face
+﻿# Modelos públicos de IA: da imagem à narração
 
-Uma aplicação simples que recebe a URL de uma imagem e gera uma descrição do seu conteúdo usando inteligência artificial. Construída com **React, Vite e Transformers.js**, ela executa o modelo diretamente no navegador.
+Projeto de aprendizado que combina três modelos pré-treinados para transformar a URL de uma imagem em uma descrição em inglês, traduzir essa descrição para português e gerar sua narração em áudio.
 
-O projeto foi desenvolvido como exercício de aprendizado: explorar a Hugging Face, entender como reutilizar modelos públicos e integrar uma tarefa de IA a uma interface web. A interface é pequena de propósito; o principal aprendizado está na escolha do modelo e no caminho entre uma imagem e o texto gerado.
+O projeto explora modelos públicos da Hugging Face em JavaScript e Python. O código realiza inferência com modelos existentes, sem treinamento ou ajuste dos pesos.
 
-## O que a aplicação faz
+![Interface do gerador de legendas](docs/caption_generator.png)
 
-1. Recebe a URL de uma imagem.
-2. Exibe a imagem na página.
-3. Ao clicar em **Generate**, carrega o modelo e gera uma legenda descritiva.
-4. Apresenta o texto abaixo da imagem.
+## Como funciona
 
-Essa tarefa é chamada de **image captioning**: produzir uma descrição textual de uma imagem. O código usa a pipeline `image-to-text`, sem realizar treinamento ou ajuste do modelo.
+1. O usuário informa uma URL de imagem e clica em **Generate**.
+2. O navegador executa o modelo de descrição e mostra a legenda em inglês.
+3. A interface envia a legenda ao servidor Node.js e recebe a tradução para português.
+4. A tradução é enviada ao servidor Python, que gera um arquivo WAV.
+5. A interface carrega o áudio e tenta reproduzi-lo, oferecendo também controles manuais.
 
-## Conhecendo a Hugging Face
-
-A Hugging Face reúne ferramentas e uma comunidade voltadas a machine learning. Seu **Hub** permite descobrir e compartilhar modelos, conjuntos de dados e demonstrações de aplicações, os **Spaces**. Essa estrutura facilita aprender com projetos da comunidade e experimentar modelos já disponíveis. Veja a [documentação do Hub](https://huggingface.co/docs/hub/index).
-
-Neste projeto, o ponto central é reutilizar um **modelo pré-treinado**. Seus pesos são os parâmetros aprendidos durante o treinamento; a aplicação carrega esses arquivos para executar a tarefa em novas imagens. Essa execução é chamada de **inferência**.
-
-Ao explorar um modelo, é importante ler sua **model card**, a documentação publicada na página do repositório. A tarefa atendida, os exemplos, as limitações, a licença e os formatos disponíveis ajudam a avaliar se ele serve para uma aplicação. Modelos públicos podem ter condições de uso e requisitos técnicos diferentes.
-
-## O modelo utilizado e sua origem
-
-A aplicação carrega **um modelo**, `Xenova/vit-gpt2-image-captioning`. Dois repositórios ajudam a entender sua origem:
-
-| Repositório | Papel no projeto |
-| --- | --- |
-| [Xenova/vit-gpt2-image-captioning](https://huggingface.co/Xenova/vit-gpt2-image-captioning) | Versão carregada pelo código, com pesos ONNX compatíveis com Transformers.js. |
-| [nlpconnect/vit-gpt2-image-captioning](https://huggingface.co/nlpconnect/vit-gpt2-image-captioning) | Modelo de origem da adaptação usada no navegador. |
-
-A arquitetura combina **ViT (Vision Transformer)**, responsável por processar a imagem, e **GPT-2**, responsável por gerar a sequência de texto a partir da representação visual. A [página do modelo original](https://huggingface.co/nlpconnect/vit-gpt2-image-captioning) apresenta sua implementação e exemplos de descrições em inglês.
-
-O **ONNX** é um formato de representação de modelos. A versão disponibilizada por Xenova contém os pesos nesse formato para compatibilidade com Transformers.js, conforme a [documentação do modelo utilizado](https://huggingface.co/Xenova/vit-gpt2-image-captioning). Isso mostra que escolher um modelo também envolve verificar o formato e o ambiente em que ele será executado.
-
-## Transformers.js: da imagem ao texto no navegador
-
-O [Transformers.js](https://huggingface.co/docs/transformers.js/index) permite executar modelos em JavaScript. Sua função `pipeline` reúne etapas como preparação da entrada, execução do modelo e processamento da saída.
-
-O trecho abaixo resume a integração implementada em [ImageCaptioner.js](image-to-text-app/src/models/ImageCaptioner.js):
-
-```js
-import { pipeline } from "@huggingface/transformers";
-
-const captioner = await pipeline(
-  "image-to-text",
-  "Xenova/vit-gpt2-image-captioning",
-  { dtype: "q8" }
-);
-
-const result = await captioner(imgSrc, { do_sample: true });
-const caption = result[0].generated_text;
+```mermaid
+flowchart LR
+    A[URL da imagem] --> B[Navegador: descrição em inglês]
+    B -->|POST /translate| C[Node.js: tradução]
+    C -->|Texto via interface| D[Python: POST /text_to_audio]
+    D --> E[Arquivo WAV]
+    E --> F[Reprodução no navegador]
 ```
 
-- **`image-to-text`** define a tarefa.
-- **O identificador do repositório** indica qual modelo carregar.
-- **`dtype: "q8"`** seleciona pesos quantizados em 8 bits. A quantização reduz a precisão numérica para diminuir o tamanho dos pesos e o uso de memória, podendo afetar a qualidade. Essa opção é explicada na [documentação do Transformers.js](https://huggingface.co/docs/transformers.js/index).
-- **`do_sample: true`** habilita amostragem na geração, permitindo variações entre descrições da mesma imagem.
-- **`generated_text`** contém o texto exibido pela interface.
+Os servidores não se comunicam diretamente: a interface coordena as chamadas em sequência.
 
-Depois de carregada, a pipeline fica guardada em uma propriedade estática da classe para reutilização nas próximas gerações. A primeira execução pode demorar mais porque precisa baixar os arquivos do modelo.
+## Componentes e documentação
 
-A implementação não exige token da Hugging Face e não usa um servidor próprio para gerar as legendas. A inferência acontece no navegador; a rede ainda é necessária para buscar os arquivos do modelo e a imagem informada.
+| Pasta | Responsabilidade | Tecnologias | Endereço local |
+| --- | --- | --- | --- |
+| [image-to-text-app](image-to-text-app/README.md) | Interface, descrição de imagens e integração das etapas | React, Vite e Transformers.js | `http://localhost:5173` |
+| [server_node](server_node/README.md) | API de tradução de inglês para português | Node.js, Express e Transformers.js | `http://localhost:3000` |
+| [server_python](server_python/README.md) | Síntese de voz e entrega dos arquivos WAV | Python, Flask, Transformers e SciPy | `http://localhost:5000` |
 
-## Aprendizados explorados
+Cada README contém instalação, execução, organização dos arquivos e limitações. Os READMEs dos servidores também documentam endpoints e Docker.
 
-- **Reutilização de modelos:** adicionar uma capacidade de IA à aplicação a partir de pesos já treinados.
-- **Treinamento e inferência:** compreender que o projeto executa um modelo existente sobre novas entradas.
-- **Compatibilidade:** considerar tarefa, formato dos pesos e biblioteca ao escolher um modelo público.
-- **Configuração da geração:** entender o papel da quantização e da amostragem.
-- **Integração com React:** lidar com operações assíncronas, indicar que a legenda está sendo gerada e atualizar a interface com o resultado.
+## Modelos utilizados
 
-## Como executar
+| Etapa | Identificador no código | Configuração |
+| --- | --- | --- |
+| Imagem para texto | `Xenova/vit-gpt2-image-captioning` | `dtype: "q8"` e `do_sample: true` |
+| Tradução | `Xenova/nllb-200-distilled-600M` | `dtype: "q8"`, de `eng_Latn` para `por_Latn` |
+| Texto para áudio | `suno/bark-small` | Voz `v2/pt_speaker_8` |
 
-Tenha Node.js e npm instalados, em versões compatíveis com as dependências do projeto. A partir da raiz do repositório:
+As pipelines JavaScript reutilizam o modelo carregado. O Python instancia o modelo a cada solicitação. A primeira utilização exige o download dos arquivos; a inferência acontece no navegador ou nos servidores locais, conforme a etapa. O código não configura tokens nem uma API remota de inferência.
+
+## Executando o projeto completo
+
+Tenha Node.js e npm compatíveis com as dependências (o Dockerfile Node usa `24.20.0`), Python **3.14 ou superior** e **uv** instalados. Reserve espaço para os modelos e acesso à internet para instalar dependências e baixar seus arquivos.
+
+Abra três terminais na raiz do repositório e mantenha os processos ativos.
+
+**Terminal 1 — tradução:**
+
+```bash
+cd server_node
+npm ci
+node index.js
+```
+
+**Terminal 2 — áudio:**
+
+```bash
+cd server_python
+uv sync --locked
+uv run python -c "from pathlib import Path; Path('audio').mkdir(exist_ok=True)"
+uv run server-python --host=0.0.0.0 --port=5000
+```
+
+**Terminal 3 — interface:**
 
 ```bash
 cd image-to-text-app
 npm ci
-npm run dev
+npm run dev -- --port 5173 --strictPort
 ```
 
-Abra o endereço indicado pelo Vite, cole uma URL direta de imagem e clique em **Generate**. Aguarde o carregamento inicial do modelo.
+Acesse `http://localhost:5173`, informe uma URL direta de imagem e clique em **Generate**. Aguarde as três etapas; o tempo depende da conexão e dos recursos da máquina.
 
-Outros comandos disponíveis dentro de `image-to-text-app`:
+Os servidores possuem arquivos Compose próprios. Não existe um Compose na raiz que inicie toda a aplicação. Consulte as instruções de [Docker do Node.js](server_node/README.md#docker) e de [Docker do Python](server_python/README.md#docker).
 
-| Comando | Função |
-| --- | --- |
-| `npm run build` | Gera a versão de produção. |
-| `npm run preview` | Serve localmente o resultado do build. |
-| `npm run lint` | Executa a análise estática com ESLint. |
+## Limitações atuais
 
-## Organização do código
+- Os endereços das APIs estão fixos no frontend. O CORS do Node.js permite a origem `http://localhost:5173`; outra porta ou hostname exige ajustes.
+- A imagem precisa estar acessível por URL e permitir seu processamento pelo navegador. Restrições de CORS podem impedir a geração da descrição.
+- A interface não trata falhas das APIs, URLs inválidas ou cliques simultâneos durante a geração.
+- Descrições, traduções e falas podem conter erros. Uma imprecisão pode se propagar às etapas seguintes.
+- Os WAVs ficam em `server_python/audio/`, sem limpeza automática. O modelo de voz é carregado novamente a cada requisição.
+- Não há uma suíte de testes automatizados configurada para o fluxo completo.
 
-```text
-image-to-text-app/
-├── src/
-│   ├── models/
-│   │   ├── ImageCaptioner.js  # Carregamento e execução do modelo
-│   │   └── api.js             # Função utilizada pela interface
-│   ├── App.jsx                # URL, imagem e legenda
-│   ├── App.css                # Estilos da aplicação
-│   └── main.jsx               # Inicialização do React
-└── package.json
-```
+## Aprendizados explorados
 
-Apesar do nome, `api.js` é uma função local que chama `ImageCaptioner`, sem representar uma API HTTP.
-
-## Limitações e próximos passos
-
-Este é um experimento de aprendizado. As descrições podem ser imprecisas e não há tradução das respostas para português. O desempenho depende da conexão durante o download e dos recursos do dispositivo durante a inferência.
-
-A entrada aceita URLs, sem upload de arquivos. Restrições de **CORS** no servidor da imagem podem impedir seu processamento, mesmo quando ela aparece na página. A interface ainda não trata URLs inválidas, falhas de download ou cliques simultâneos durante a geração.
-
-Possíveis próximos passos incluem progresso de download, tratamento de erros, upload local e comparação com outros modelos compatíveis com a tarefa e com Transformers.js.
+O projeto permite estudar escolha de modelos por tarefa, pipelines de inferência, quantização nas etapas JavaScript e integração entre ambientes diferentes. Também exercita chamadas HTTP, atualização assíncrona da interface e geração e reprodução de áudio.
