@@ -9,6 +9,10 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "flask>=3.1.3",
+    "flask-cors>=6.0.5",
+    "optimum>=2.3.0",
+    "scipy>=1.18.1",
+    "transformers>=5.17.0",
 ]
 
 [project.scripts]

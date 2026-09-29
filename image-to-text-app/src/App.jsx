@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './App.css'
-import {generateCaption, translateCaption} from './models/api';
+import {generateCaption, translateCaption, convertToAudio} from './models/api';
 
 function App() {
   const [imgSrc, setImgSrc] = useState(null);
   const [caption, setCaption] = useState("<Caption>")
   const [captionPTBR, setcaptionPTBR] = useState("<Legenda>")
+  const [audioSrc, setAudioSrc] = useState(null);
+  const captionAudio = useRef();
 
   function resetCaption(){
     setCaption("<Caption>");
     setcaptionPTBR("<Legenda>");
+    setAudioSrc(null);
   }
   async function addCaption() {
     resetCaption();
@@ -22,7 +25,21 @@ function App() {
     const captionPTBR = await translateCaption(caption[0]['generated_text']);
     setcaptionPTBR(captionPTBR[0]['translation_text']);
 
+    const audioEndpoint = await convertToAudio(captionPTBR[0]['translation_text']);
+    const audioSrc = "http://localhost:5000" + audioEndpoint[0]['url'];
+    setAudioSrc(audioSrc);
   }
+
+  useEffect(() => {
+    const audio = captionAudio.current;
+    if (!audio || !audioSrc) return;
+
+    audio.play().catch((error) => {
+      if (error.name !== "AbortError") {
+        console.error("Erro ao reproduzir áudio:", error);
+      }
+    });
+  }, [audioSrc]);
 
   return (
     <>
@@ -35,6 +52,7 @@ function App() {
         <img src={imgSrc} height={200} style={{marginBottom: "10px"}}/>
         <span>{caption}</span>
         <span>{captionPTBR}</span>
+        <audio controls ref={captionAudio} src={audioSrc} />
       </div>
     </>
   )
