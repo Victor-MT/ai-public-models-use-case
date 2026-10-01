@@ -2,7 +2,7 @@
 
 Projeto de aprendizado que combina três modelos pré-treinados para transformar a URL de uma imagem em uma descrição em inglês, traduzir essa descrição para português e gerar sua narração em áudio.
 
-O projeto explora modelos públicos da Hugging Face em JavaScript e Python. O código realiza inferência com modelos existentes, sem treinamento ou ajuste dos pesos.
+O projeto explora modelos públicos da [Hugging Face](https://huggingface.co/spaces) em JavaScript e Python. O código realiza inferência com modelos existentes, sem treinamento ou ajuste dos pesos.
 
 ![Interface do gerador de legendas](docs/caption_generator.png)
 
